@@ -1,0 +1,101 @@
+doctype html
+html(lang="ja")
+  head
+    meta(charset="UTF-8")
+    link(rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
+      integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC"
+      crossorigin="anonymous")
+    link(rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css")
+    link(rel="stylesheet" href="style.css")
+    title NNチャット
+    //- ★body 要素に、モードに応じた配色のクラスを設定
+    //- モードに応じた配色のクラスを bodyColor 変数に代入
+    //- 三項演算子を用いて、モードがライトモードの場合は空文字列、ダークモードの場合は bg-dark text-white を代入
+  - const bodyColor = (currentTheme === 'light' ? '' : 'bg-dark text-white');
+  body.container.overflow-scroll(class=bodyColor)
+
+    nav.navbar.fixed-top.bg-primary
+      div.container-fluid
+        h1.text-light.navbar-brand.mx-auto NNチャット
+          i.bi-chat-dots-fill.ms-1        
+        //- ドロップダウン用のボタンとメニューのリストを配置  
+        div.dropdown
+          //- ★ドロップダウンボタン
+          //- ドロップダウンボタンの色は、モードに応じて btn-outline-light または btn-outline-dark を設定
+          //- ドロップダウンボタンの ID は menu に設定
+          //- ドロップダウンボタンのデータ属性は、data-bs-toggle="dropdown" と aria-expanded="false" を設定
+          - const dropdownButtonColor = (currentTheme === 'light' ? 'btn-outline-light' : 'btn-outline-dark text-white');
+          button.btn.dropdown-toggle(type="button" class=dropdownButtonColor id="menu" data-bs-toggle="dropdown" aria-expanded="false") #{user}
+
+            i.bi-gear-fill.ms-1
+          //- ★ドロップダウンメニュー
+          //- ドロップダウンメニューの色は、モードに応じて dropdown-menu-light または dropdown-menu-dark を設定
+          - const dropdownMenuColor = (currentTheme === 'light' ? '' : 'dropdown-menu-dark');
+          ul.dropdown-menu.dropdown-menu-end(class=dropdownMenuColor aria-labelledby="menu")
+
+            li
+              - const changeThemeText = (currentTheme === 'light' ? 'ダークモードに切り替え' : 'ライトモードに切り替え');
+              a.dropdown-item(href="/changeTheme") #{changeThemeText}            
+              a.dropdown-item(href="/logout") ログアウト
+
+    //- ★投稿一覧を表示するためのコンテナ
+    //- 投稿一覧を表示するためのコンテナの色は、モードに応じて bg-white または bg-dark を設定
+    - const defaultCardColor = (currentTheme === 'light' ? '' : 'bg-dark border-secondary')
+    - const ownerCardColor = (currentTheme === 'light' ? 'border-primary' : 'bg-dark border-primary')
+
+    //- posts 配列の要素を順に post 変数に取り出すループ
+    //- テンプレートエンジン Pug は each-in という構文を用いて、繰り返してテンプレート出力できる
+    each post in posts
+
+      //- ★投稿者が自分の場合は、投稿者のカードの色を変更する
+      - const cardColor = (user === post.postedBy ? ownerCardColor : defaultCardColor )
+      div.card.my-3(class=cardColor)
+
+        //- 投稿者名 (post.postedBy)  投稿日時 (post.createdAt)　投稿内容 (post.content)
+        div.card-body
+          div.d-flex.justify-content-between
+            h5.card-title #{post.postedBy}
+              //- 投稿者が admin の場合は、アイコンを表示する
+              if post.postedBy === 'admin'
+                i.bi-patch-check-fill.ms-1
+            - const tooltipTitle = `<small>${post.absoluteCreatedAt}</small>`
+            small.card-text.float-end(data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true" title=tooltipTitle) #{post.relativeCreatedAt}
+          p.card-text.lead #{post.content}
+        //- 削除可能かどうかの判定 (isDeletable): 投稿者本人または管理者 (user === post.postedBy || user === 'admin') の場合に削除ボタンを表示。
+        - const isDeletable = (user === post.postedBy || user === 'admin')
+        if isDeletable
+          div.card-footer.d-flex.justify-content-end
+            form(method="post" action="/posts/delete")
+              input(type="hidden" name="id" value=post.id)
+              input(type="hidden" name="oneTimeToken" value=oneTimeToken)              
+
+              //- ★削除ボタン
+              //- 削除ボタンの色は、モードに応じて btn-outline-danger または btn-danger を設定
+              - const deleteButtonColor = (currentTheme === 'light' ? 'btn-outline-danger' : 'btn-danger');
+              button.btn.btn-sm(type="submit" class=deleteButtonColor)
+
+                i.bi-trash
+
+    //- ★フッター
+    //- フッターの色は、モードに応じて bg-white または bg-dark を設定
+    - const footerColor = (currentTheme === 'light' ? 'bg-white' : 'bg-dark');
+    div.fixed-bottom.p-4(class=footerColor)
+
+      form(method="post" action="/posts" name="message-form").container-fluid.row.g-3
+        div.col-12
+          //- ★テキストエリア
+          //- テキストエリアの色は、モードに応じて form-control-light または form-control-dark を設定
+          - const textareaColor = (currentTheme === 'light' ? '' : 'bg-dark text-white');
+          textarea.form-control(name="content" rows="4" placeholder="Ctrl(Command)+Enterで送信できます" class=textareaColor)
+          //- ワンタイムトークンをフォームの中に hidden のタイプの input 要素として埋め込む
+          input(type="hidden" name="oneTimeToken" value=oneTimeToken)
+        div.col-12
+          button(type="submit").btn.btn-primary.float-end
+            i.bi-send
+
+    script(src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
+      integrity="sha256-qlPVgvl+tZTCpcxYJFdHB/m6mDe84wRr+l81VoYPTgQ="
+      crossorigin="anonymous")
+    script(src="nn-chat.js")
